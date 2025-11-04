@@ -102,14 +102,14 @@ class Game
     ask_retry
   end
 
-  def left_attempts
+  def lives
     DIFFICULTIES[difficulty][:attempts] - attempts
   end
 
   def pp_game_state
     colorized_word = visible_word.each_char.map { |char| char.eql?('_') ? char.red : char.blue }.join('')
     puts "Word: #{colorized_word}"
-    puts '♥'.red * left_attempts
+    puts '♥'.red * lives
   end
 
   def reveal_letter(letter, letter_indexes)
@@ -127,14 +127,18 @@ class Game
 
     letter_indexes = secret_word.letter_indexes(letter)
 
-    reveal_letter(letter, letter_indexes) unless letter_indexes.empty?
+    if letter_indexes.empty?
+      self.attempts += 1
+    else
+      reveal_letter(letter, letter_indexes)
+    end
   end
 
   def play
     pp_game_state
     ask_letter
 
-    play unless secret_word.same?(visible_word) || left_attempts.zero?
+    play unless secret_word.same?(visible_word) || lives.zero?
 
     pp_game_state
   end
