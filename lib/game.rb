@@ -126,6 +126,7 @@ class Game
     puts
 
     return ask_letter if letter.length != 1
+    return if visible_word.include?(letter)
 
     letter_indexes = secret_word.letter_indexes(letter)
 
