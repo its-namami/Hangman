@@ -7,21 +7,82 @@ require_relative 'ascii_art'
 
 # Class that stores methods and variables of hangman game
 class Game
-  def initialize
-    pp_welcome
+  SAVES_DIR = File.expand_path('saves', Dir.pwd)
 
+  def self.start
+    puts AsciiArt::HANGMAN_BY_ITS_NAMAMI
+
+    game_new
+  end
+
+  def play
+    return game_over if is_game_over
+
+    pp_game_state
+    ask_letter
+
+    self.is_game_over = true if secret_word.same?(visible_word) || lives <= 0
+
+    pp_game_state
+    play
+  end
+
+  class << self
+    def game_new
+      saved_game = ask_load_game
+
+      game =
+        if saved_game
+          Marshal.load(saved_game)
+        else
+          Game.new
+        end
+
+      game.play
+    end
+
+    private
+
+    def ask_load_game
+      return false if Dir.children(SAVES_DIR).empty?
+
+      print "Do you want to load the last save? [y/N]\n>>> "
+
+      saved_game =
+        case gets.chomp.downcase
+        when 'n', '' then false
+        when 'y' then File.open("#{SAVES_DIR}/#{Dir.children(SAVES_DIR).max_by(&:to_i)}")
+        else
+          puts 'Invalid input, write y or n instead'
+          ask_load_game
+        end
+
+      puts
+
+      saved_game
+    end
+  end
+
+  private
+
+  def initialize
     @secret_word = WordController.new
     @visible_word = '_' * secret_word.word_size
     @attempts = 0
     @difficulty = ask_difficulty
     @is_game_over = false
-
-    play unless secret_word.same?(visible_word) || attempts >= DIFFICULTIES[difficulty][:attempts]
-
-    game_over
   end
 
-  private
+  def save_game
+    saves = Dir.children(SAVES_DIR)
+
+    if saves.empty?
+      File.write(SAVES_DIR + '/0', Marshal.dump(self))
+    else
+      new_filename = (saves.max_by(&:to_i).to_i + 1).to_s
+      File.write(SAVES_DIR + "/#{new_filename}", Marshal.dump(self))
+    end
+  end
 
   attr_reader :new_word, :secret_word
 
@@ -41,10 +102,6 @@ class Game
       attempts: 4
     }
   }.freeze
-
-  def pp_welcome
-    puts AsciiArt::HANGMAN_BY_ITS_NAMAMI
-  end
 
   def ask_difficulty_number
     puts "Choose the difficulty (1-#{DIFFICULTIES.size}):"
@@ -71,10 +128,6 @@ class Game
     end
   end
 
-  def game_retry
-    self.class.new
-  end
-
   def game_leave
     puts AsciiArt::SEE_YOU_NEXT_TIME
   end
@@ -85,7 +138,7 @@ class Game
     puts
 
     case answer.downcase
-    when 'y', '' then game_retry
+    when 'y', '' then self.class.game_new
     when 'n' then game_leave
     else
       puts 'Invalid input!'
@@ -120,12 +173,22 @@ class Game
     end
   end
 
+  # also saves, no separate method to save time
   def ask_letter
-    print "Input the letter you want to try\n>>> "
+    print "Input the letter you want to try or save game [a-z|save]\n>>> "
     letter = gets.chomp
     puts
 
-    return ask_letter if letter.length != 1
+    if letter.eql?('save')
+      save_game
+
+      puts 'Game saved!'
+      ask_letter
+    elsif letter.length != 1 || !('a'.ord..'z'.ord).include?(letter.downcase.ord)
+      puts 'Error: not allowed command, input a 1 latin letter or save'.colorize(background: :red)
+
+      return ask_letter
+    end
     return if visible_word.include?(letter)
 
     letter_indexes = secret_word.letter_indexes(letter)
@@ -135,17 +198,5 @@ class Game
     else
       reveal_letter(letter, letter_indexes)
     end
-  end
-
-  def play
-    return if is_game_over
-
-    pp_game_state
-    ask_letter
-
-    self.is_game_over = true if secret_word.same?(visible_word) || lives.zero?
-
-    pp_game_state
-    play
   end
 end
