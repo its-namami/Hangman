@@ -9,6 +9,8 @@ require_relative 'ascii_art'
 class Game
   SAVES_DIR = File.expand_path('saves', Dir.pwd)
 
+  attr_accessor :save_file
+
   def self.start
     puts AsciiArt::HANGMAN_BY_ITS_NAMAMI
 
@@ -31,12 +33,13 @@ class Game
     def game_new
       saved_game = ask_load_game
 
-      game =
-        if saved_game
-          Marshal.load(saved_game)
-        else
-          Game.new
-        end
+      if saved_game
+        game = Marshal.load(saved_game)
+
+        game.save_file = saved_game.path
+      else
+        game = Game.new
+      end
 
       game.play
     end
@@ -146,6 +149,12 @@ class Game
     end
   end
 
+  def delete_file_save
+    File.delete(File.open(save_file))
+
+    puts 'This save file was successfully deleted!'
+  end
+
   def game_over
     if secret_word.same?(visible_word)
       puts AsciiArt::WIN
@@ -153,6 +162,8 @@ class Game
       puts AsciiArt::LOSE
       puts "Secret word would have been: #{secret_word.pop}"
     end
+
+    delete_file_save if save_file
 
     ask_retry
   end
