@@ -89,7 +89,7 @@ class Game
     when 'n' then game_leave
     else
       puts 'Invalid input!'
-      game_over
+      ask_retry
     end
   end
 
