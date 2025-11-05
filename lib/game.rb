@@ -14,6 +14,7 @@ class Game
     @visible_word = '_' * secret_word.word_size
     @attempts = 0
     @difficulty = ask_difficulty
+    @is_game_over = false
 
     play unless secret_word.same?(visible_word) || attempts >= DIFFICULTIES[difficulty][:attempts]
 
@@ -24,7 +25,7 @@ class Game
 
   attr_reader :new_word, :secret_word
 
-  attr_accessor :attempts, :difficulty, :visible_word
+  attr_accessor :attempts, :difficulty, :visible_word, :is_game_over
 
   DIFFICULTIES = {
     easy: {
@@ -97,6 +98,7 @@ class Game
       puts AsciiArt::WIN
     else
       puts AsciiArt::LOSE
+      puts "Secret word would have been: #{secret_word.pop}"
     end
 
     ask_retry
@@ -135,11 +137,14 @@ class Game
   end
 
   def play
+    return if is_game_over
+
     pp_game_state
     ask_letter
 
-    play unless secret_word.same?(visible_word) || lives.zero?
+    self.is_game_over = true if secret_word.same?(visible_word) || lives.zero?
 
     pp_game_state
+    play
   end
 end

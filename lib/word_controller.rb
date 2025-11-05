@@ -20,9 +20,15 @@ class WordController
     word.eql?(guess_word)
   end
 
+  def pop
+    word = self.word
+    self.word = nil
+    word
+  end
+
   private
 
-  attr_reader :word
+  attr_accessor :word
 
   WORDS = File.readlines(File.join(__dir__, '../data/google-10000-english-no-swears.txt')).map(&:chomp).freeze
 end
